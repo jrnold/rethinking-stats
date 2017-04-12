@@ -1,0 +1,37 @@
+book_filename: "intro-method-notes"
+chapter_name: "Chapter "
+new_session: yes
+output_dir: docs
+before_chapter_script: "_common.R"
+edit:
+  link: https://github.com/jrnold/intro-methods-notes/edit/gh-pages/%s
+  text: "Edit"
+rmd_subdir: false
+rmd_files:
+  - index.Rmd
+
+  - eda.Rmd
+  - probability.Rmd
+  - inference.Rmd
+
+  - regression.Rmd
+  - cef.Rmd
+  - marginaleffects.Rmd
+  - multiple_testing.Rmd
+  - wls.Rmd
+
+  - programming.Rmd
+  - formula.Rmd
+
+  - examples.Rmd
+  - duncan.Rmd
+  - pauperism.Rmd
+
+  - presentation.Rmd
+  - tables_and_plots.Rmd
+  - reproducible_research.Rmd
+  - writing.Rmd
+
+  - appendix.Rmd
+  - distributions.Rmd
+  - references.Rmd
