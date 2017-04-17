@@ -1,21 +1,13 @@
 data {
-  # number obs
   int n;
-  int admit[n];
-  int rej[n];
-  # priors
-  vector[2] a_mean;
-  vector<lower = 0.0>[2] a_scale;
+  int<lower = 2> K;
+  int<lower = 1, upper = K> response[n];
 }
 parameters {
-  vector[2] a;
-}
-transformed parameters {
-  vector<lower = 0.0>[2] lambda;
-  lambda = log(a);
+  ordered[K - 1] cutpoints;
 }
 model {
-  a ~ normal(a_mean, a_scale);
-  admit ~ poisson(lambda[1]);
-  rej ~ poisson(lambda[2]);
+  for (i in 1:n) {
+    response[i] ~ ordered_logistic(0, cutpoints);
+  }
 }
