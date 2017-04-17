@@ -1,0 +1,208 @@
+# Chapter 4
+
+```{r message=FALSE}
+library("tidyverse")
+library("rstan")
+library("bayesplot")
+```
+
+
+## 4.1 Why Normal Distributions are Normal?
+
+```{r ex4.1}
+n_sims <- 1000
+n <- 16
+a <- -1
+b <- 1
+pos <- map_df(seq_len(n_sims), 
+              function(i) {
+                tibble(y = cumsum(runif(n, a, b)),
+                       step = seq_len(n),
+                       .id = i)
+              })
+
+```
+
+*Note:* should be `cumsum` not `sum` in the book
+
+```{r}
+ggplot(pos, aes(x = step, y = y, group = .id)) +
+  geom_line(alpha = 0.3)
+```
+
+```{r code4.1}
+pos <- pos %>%
+  group_by(step) %>%
+  mutate(normdens = dnorm(y, mean(y), sd(y)))
+
+ggplot(pos) +
+  geom_density(aes(x = y)) +
+  geom_line(aes(x = y, y = normdens), colour = "red") +
+  facet_wrap(~ step, nrow = 4)
+
+
+```
+
+```{r}
+filter(pos, step %in% c(4, 8, 16))
+```
+
+```{r code4.2}
+prod(1 + runif(12, 0, 0.1))
+```
+
+```{r code4.3}
+growth <- map_df(seq_len(1e4),
+                 function(i) tibble(x = prod(1 + runif(12, 0, 0.1)))) %>%
+  mutate(normdens = dnorm(x, mean(x), sd(x)))
+
+ggplot(growth) +
+  geom_density(aes(x = x)) +
+  geom_line(aes(x = x, y = normdens), colour = "red")
+```
+
+## 4.3 A Gaussian Model of Height
+
+```{r}
+data("Howell1", package = "rethinking")
+d <- Howell1
+```
+
+```{r code_4.10}
+d2 <- filter(d, age >= 18)
+```
+
+```{r}
+ggplot(tibble(x = seq(100, 250, length.out = 100),
+              y = dnorm(x, 178, 20)),
+       aes(x = x, y = y)) +
+  geom_line()
+```
+
+```{r}
+ggplot(tibble(x = seq(-10, 60, length.out = 100),
+              y = dunif(x, 0, 50)),
+       aes(x = x, y = y)) +
+  geom_line()
+```
+
+```{r}
+sample_mu <- rnorm(1e4, 178, 20)
+sample_sigma <- runif(1e4, 0, 50)
+prior_h <- rnorm(1e4, sample_mu, sample_sigma)
+ggplot(tibble(x = prior_h), aes(x = x)) +
+  geom_density()
+```
+
+$$
+\DeclareMathOperator{dnorm}{Normal}
+\DeclareMathOperator{dunif}{Uniform}
+$$
+
+The normal model of height in 4.25
+$$
+\begin{aligned}[t]
+h_i & \sim \dnorm(\mu, sigma) \\
+\mu & \sim \dnorm(178, 20) \\
+\sigma & \sim \dunif(0, 50)
+\end{aligned}
+$$
+
+
+```{r message=FALSE}
+m4.1_data <- list(height = Howell1$height,
+                  n = nrow(Howell1),
+                  # priors
+                  mu_mean = 178, 
+                  mu_scale = 20,
+                  sigma_upper = 500)
+```
+Compile the Stan model
+```{r}
+m4.1 <- stan_model(file.path("stan", "ex4.25.stan"))
+print(m4.1)
+```
+Sample from the model:
+```{r}
+m4.1_res <- sampling(m4.1, data = m4.1_data)
+```
+By default `rstan` uses 4 chains of 2000 iterations each. However, the number of iterations is not important.
+
+Summary of the model:
+```{r}
+print(m4.1_res)
+```
+
+- `lp__` is the unnormalized log posterior ($p(\theta | x)$) of the model
+- `mean`, `sd`, `2.5%`, `25%`, `50%`, `75%`, and `97.5%` are statistics of the posterior distribution
+- `se_mean` is the standard error of the mean, which is `sd / n_eff`. This is the Monte Carlo (error from using a finite sample) of the mean statistic.
+- `n_eff` is the number of effective samples; this is the number of independent samples that are equivalent to the number of dependent samples.  This, rather than the number of iterations, is the imporant value to consider. Since in MCMC iterations are correlated, the number of effective samples is the sample size of interest, not the raw number of iterations. 
+- `Rhat` is a measure of the "convergence". It should be < 1.1 for all variables.
+
+
+`4.29`: Rerun the model with a prior 
+$$
+\mu \sim N(178, 0.1)
+$$
+```{r}
+m4.2_data <- m4.1_data
+m4.2_data$mu <- 0.1
+m4.2_res <- sampling(m4.1, data = m4.2_data)
+m4.2_res
+```
+
+## 4.4 Adding a Predictor
+
+Model in `4.38`
+$$
+\begin{aligned}[t]
+h_i & \sim \dnorm(\mu_i, sigma) \\
+\mu_i = \alph + \beta x_i \\
+\alpha & \sim \dnorm(178, 100) \\
+\beta & \sim \dnorm(0, 10) \\
+\sigma & \sim \dunif(0, 50)
+\end{aligned}
+$$
+
+
+```{r}
+m4.3 <- stan_model(file.path("stan", "ex4.38.stan"))
+```
+
+```{r}
+d2 <- filter(Howell1, age >= 18)
+m4.3_data <-
+  list(
+    height = d2$height,
+    weight = d2$weight,
+    n = nrow(d2),
+    # a ~ N(a_mean, a_scale)
+    a_mean = 156,
+    a_scale = 100,
+    # b ~ N(b_mean, b_scale)
+    b_mean = 0, 
+    b_scale = 10,
+    # sigma ~ U(0, sigma_upper)
+    sigma_upper = 50
+  )
+m4.3_res <- sampling(m4.3, data = m4.3_data)
+```
+```{r}
+m4.3_res
+```
+
+Centering weight
+```{r}
+m4.4_data <- m4.3_data
+m4.4_data$weight <- m4.4_data$weight - mean(m4.4_data$weight)
+m4.4_res <- sampling(m4.3, data = m4.4_data)
+m4.4_res
+```
+
+
+In `m4.5` the 
+
+```{r}
+
+```
+

@@ -1,0 +1,23 @@
+# Spurious Association
+
+$$
+\DeclareMathOperator{dnorm}{Normal}
+\DeclareMathOperator{dhalfcauch}{HalfCauchy}
+$$
+
+## 5.1 Spurious Association
+
+$$
+\begin{aligned}[t]
+D_i & \sim \dnorm(\mu_i, \sigma) \\
+\mu_i &= \alpha + \beta_A A_i \\
+\alpha &\sim \dnorm(10, 10) \\
+\beta_A &\sim \dnorm(0, 1) \\
+\sigma &\sim \dhalfcauchy(0, 5)
+\end{aligned}
+$$
+
+This uses a half-Cauchy prior for $\sigma$ instead of a uniform distribution.
+
+
+
