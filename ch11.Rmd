@@ -1,0 +1,6 @@
+# Monsters and Mixtures
+
+
+## Zero-Inflated Poisson
+
+See 12.7 Zero-Inflated and Hurdle Model of Version 2.14.0 of Stan Reference.
