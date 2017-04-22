@@ -1,0 +1,121 @@
+---
+title: "stan.Rmd"
+author: "Jeffrey Arnold"
+date: "4/17/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# How Stan Works
+
+1. Write a Stan Model
+2. Model compiles to C++
+3. C++ compiles to executable code
+4. Samples are run
+
+# Implications
+
+1. Slow: compilation
+2. Fast(ish): sampling
+
+# Stan Model
+
+1. It specifying a log posterior distribution. 
+    $p(\theta | x)$
+    
+    - Sampling statements `~`: `y ~ normal(mu, sigma)`
+    - Increment: `target += ...`
+    
+    
+2. It is using "autodiff" to calculate derivatives of the log-posterior at each point
+
+
+# Blocks
+
+- `data`
+- `transformed data`
+- `parameters`
+- `transformed parameters`
+- `model`
+
+Ch 5.1 to 5.3
+
+The amount of work done by the sampler does depend on the number of unconstrained
+
+- parameters, but this is usually dwarfed by the gradient calculations
+- Variable types: Gelman and Hill 2007 - what is the test? 
+
+Choice of priors
+
+- Ch 8.3
+
+    - Improper uniform priors
+    - proper uniform
+    - uninformative priors: Gamma(0, 0.0001) is bad. Skews the posterior.
+    - truncated priors
+    - weakly informative priors
+    - bounded priors
+    - very wide priors can cause numerical problems
+    
+- CH 8.4 Robust Noise Models
+- Ch 8.5 Logit and Probit Models
+- Ch 8.6 Multi-logit model
+- Ch 8.8 Ordered logistic/probit regression
+- Ch 8.9 Hierarchical logistic regression
+- Ch 8.10 Boundary avoiding priors in MLE
+- Ch 8.11 Item Response
+- Ch 8.12 Priors for identifiability
+
+    - collinearity
+    - separability
+    - location/scale invariance
+    
+- Ch 8.13: Multivariate Priors for Hierarchical models
+
+    - LKJ
+
+- Ch 8.14: Predictions
+- Ch 8.15: Multivariate Models
+
+    - SUR
+    - Multivariate Probit
+    
+- Ch 8.16: RNG in the generative model steps
+- Ch 9: Time series models
+  
+    - ARMA
+    - GARCH
+    - Hidden Markov
+    
+- Ch 10: Missing Data
+- Ch 10.4: Loading in factor analysis
+- Ch 11: 
+- Ch 12: Finite Mixture Models
+
+    - 
+    - Zero-Inflated models
+    
+- Ch 13: Measurement Error and Meta Analysis
+- Ch 14: Latent Discrete parameter
+
+    - Change Points
+    - Mark/recapture
+    
+- Ch 15:
+- Ch 16: Sparse and Ragged Data Structures
+- Ch 17: Clustering Model
+
+    - K-means and problems
+    - Naive bayes / multinomial classification
+    - LDA
+    
+- Ch 18: Gaussian Processes
+
+# misc notes
+
+- To create Stan model in RStudio
+
+    - `New File > Text File` When you save it with a `.stan` extension or open a file with a `.stan` extension it will open with 

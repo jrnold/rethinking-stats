@@ -19,5 +19,157 @@ $$
 
 This uses a half-Cauchy prior for $\sigma$ instead of a uniform distribution.
 
+```{r}
+data("WaffleDivorce", package = "rethinking")
+d <- WaffleDivorce %>%
+  mutate(MedianAgeMarriage_s = as.numeric(scale(MedianAgeMarriage)))
+m5.1_data <- list(
+  n = nrow(d),
+  Divorce = d$Divorce,
+  MedianAgeMarriage_s = d$MedianAgeMarriage_s,
+  a_mean = 10,
+  a_scale = 10,
+  bA_mean = 0,
+  bA_scale = 1,
+  sigma_scale = 5
+)
+```
+```{r results='hide'}
+m5.1 <- stan_model(file.path("stan", "m5.1.stan"))
+```
+```{r results='hide}
+m5.1_fit <- sampling(m5.1, data = m5.1_data)
+```
+
+$$
+\begin{aligned}[t]
+D_i & \sim \dnorm(\mu_i, \sigma) \\
+\mu_i &= \alpha + \beta_A A_i \\
+\alpha &\sim \dnorm(10, 10) \\
+\beta_R &\sim \dnorm(0, 1) \\
+\sigma &\sim \dhalfcauchy(0, 5)
+\end{aligned}
+$$
+
+```{r}
+d <- d %>%
+  mutate(Marriage_s = as.numeric(scale(Marriage)))
+m5.2_data <- within(m5.1_data, {
+  Marriage_s <- d$Marriage_s
+  bR_mean <- 0
+  bR_scale <- 1
+})
+```
+```{r results='hide'}
+m5.2 <- stan_model(file.path("stan", "m5.2.stan"))
+```
+```{r results='hide}
+m5.2_fit <- sampling(m5.2, data = m5.2_data)
+```
+
+
+$$
+\begin{aligned}[t]
+D_i & \sim \dnorm(\mu_i, \sigma) \\
+\mu_i &= \alpha + \beta_A A_i + \beta_R R_i \\
+\alpha &\sim \dnorm(10, 10) \\
+\beta_A &\sim \dnorm(0, 1) \\
+\beta_R &\sim \dnorm(0, 1) \\
+\sigma &\sim \dhalfcauchy(0, 5)
+\end{aligned}
+$$
+```{r}
+m5.3_data <- m5.2_data
+```
+```{r results='hide'}
+m5.3 <- stan_model(file.path("stan", "m5.3.stan"))
+```
+```{r results='hide}
+m5.3_fit <- sampling(m5.3, data = m5.3_data)
+```
+
+$$
+\begin{aligned}[t]
+D_i & \sim \dnorm(\mu_i, \sigma) \\
+\mu_i &= \alpha + \beta A_i \\
+\alpha &\sim \dnorm(10, 10) \\
+\beta &\sim \dnorm(0, 1) \\
+\sigma &\sim \dhalfcauchy(0, 5)
+\end{aligned}
+$$
+```{r}
+m5.4_data <- within(m5.3_data, {
+  b_mean <- 0
+  b_scale <- 10
+})
+```
+```{r results='hide'}
+m5.4 <- stan_model(file.path("stan", "m5.4.stan"))
+```
+```{r results='hide}
+m5.4_fit <- sampling(m5.4, data = m5.4_data)
+```
+
+## 5.2 Masked Relationship
+
+```{r}
+data("milk", package = "rethinking")
+d <- milk[complete.cases(milk), ]
+```
+
+```{r}
+m5.5_data <- list(
+  kcal_per_g = d$kcal.per.g,
+  neocortex_perc = d$neocortex.perc,
+  n = nrow(d),
+  a_mean = 0,
+  a_scale = 100,
+  bn_mean = 0,
+  bn_scale = 1,
+  sigma_scale = 0.5
+)
+```
+```{r results='hide'}
+m5.5 <- stan_model(file.path("stan", "m5.5.stan"))
+m5.5_fit <- sampling(m5.5, data = m5.5_data)
+```
+
+```{r}
+m5.6_data <- list(
+  kcal_per_g = d$kcal.per.g,
+  log_mass = log(d$mass),
+  n = nrow(d),
+  a_mean = 0,
+  a_scale = 100,
+  bm_mean = 0,
+  bm_scale = 1,
+  sigma_scale = 0.5
+)
+```
+```{r results='hide'}
+m5.6 <- stan_model(file.path("stan", "m5.6.stan"))
+m5.6_fit <- sampling(m5.6, data = m5.6_data)
+```
+
+
+```{r}
+m5.7_data <- list(
+  kcal_per_g = d$kcal.per.g,
+  neocortex_perc = d$neocortex.perc,
+  log_mass = log(d$mass),
+  n = nrow(d),
+  a_mean = 0,
+  a_scale = 100,
+  bn_mean = 0,
+  bn_scale = 1,  
+  bm_mean = 0,
+  bm_scale = 1,
+  sigma_scale = 0.5
+)
+```
+```{r results='hide'}
+m5.7 <- stan_model(file.path("stan", "m5.7.stan"))
+m5.7_fit <- sampling(m5.7, data = m5.7_data)
+```
 
 

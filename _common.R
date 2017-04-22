@@ -1,4 +1,9 @@
-library("tidyverse")
+suppressPackageStartupMessages({
+  library("rstan")
+  library("tidyverse")
+  library("bayesplot")
+})
+
 rpkg_url <- function(pkg) {
   paste0("https://cran.r-project.org/package=", pkg)
 }

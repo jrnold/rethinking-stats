@@ -1,12 +1,5 @@
 # Chapter 4
 
-```{r message=FALSE}
-library("tidyverse")
-library("rstan")
-library("bayesplot")
-```
-
-
 ## 4.1 Why Normal Distributions are Normal?
 
 ```{r ex4.1}
@@ -94,17 +87,13 @@ ggplot(tibble(x = prior_h), aes(x = x)) +
   geom_density()
 ```
 
-$$
-\DeclareMathOperator{dnorm}{Normal}
-\DeclareMathOperator{dunif}{Uniform}
-$$
 
 The normal model of height in 4.25
 $$
 \begin{aligned}[t]
-h_i & \sim \dnorm(\mu, sigma) \\
+h_i & \sim \dnorm(\mu, \sigma) \\
 \mu & \sim \dnorm(178, 20) \\
-\sigma & \sim \dunif(0, 50)
+\sigma & \sim \dhalfcauchy(0, 25)
 \end{aligned}
 $$
 
@@ -115,15 +104,15 @@ m4.1_data <- list(height = Howell1$height,
                   # priors
                   mu_mean = 178, 
                   mu_scale = 20,
-                  sigma_upper = 500)
+                  sigma_scale = 25)
 ```
 Compile the Stan model
-```{r}
-m4.1 <- stan_model(file.path("stan", "ex4.25.stan"))
-print(m4.1)
+```{r results='hide'}
+m4.1 <- stan_model(file.path("stan", "m4.1.stan"))
 ```
+
 Sample from the model:
-```{r}
+```{r results='hide'}
 m4.1_res <- sampling(m4.1, data = m4.1_data)
 ```
 By default `rstan` uses 4 chains of 2000 iterations each. However, the number of iterations is not important.
@@ -144,32 +133,36 @@ print(m4.1_res)
 $$
 \mu \sim N(178, 0.1)
 $$
-```{r}
+```{r results='hide'}
+m4.2 <- stan_model(file.path("stan", "m4.2.stan"))
 m4.2_data <- m4.1_data
 m4.2_data$mu <- 0.1
 m4.2_res <- sampling(m4.1, data = m4.2_data)
+```
+```{r}
 m4.2_res
 ```
+
 
 ## 4.4 Adding a Predictor
 
 Model in `4.38`
 $$
 \begin{aligned}[t]
-h_i & \sim \dnorm(\mu_i, sigma) \\
-\mu_i = \alph + \beta x_i \\
+h_i & \sim \dnorm(\mu_i, \sigma) \\
+\mu_i &= \alpha + \beta x_i \\
 \alpha & \sim \dnorm(178, 100) \\
 \beta & \sim \dnorm(0, 10) \\
-\sigma & \sim \dunif(0, 50)
+\sigma & \sim \dhalfcauchy(25)
 \end{aligned}
 $$
 
 
-```{r}
-m4.3 <- stan_model(file.path("stan", "ex4.38.stan"))
+```{r results='hide'}
+m4.3 <- stan_model(file.path("stan", "m4.3.stan"))
 ```
 
-```{r}
+```{r results='hide'}
 d2 <- filter(Howell1, age >= 18)
 m4.3_data <-
   list(
@@ -182,8 +175,7 @@ m4.3_data <-
     # b ~ N(b_mean, b_scale)
     b_mean = 0, 
     b_scale = 10,
-    # sigma ~ U(0, sigma_upper)
-    sigma_upper = 50
+    sigma_scale = 25
   )
 m4.3_res <- sampling(m4.3, data = m4.3_data)
 ```
@@ -192,17 +184,74 @@ m4.3_res
 ```
 
 Centering weight
-```{r}
+```{r results='hide'}
+m4.4 <- stan_model(file.path("stan", "m4.4.stan"))
 m4.4_data <- m4.3_data
 m4.4_data$weight <- m4.4_data$weight - mean(m4.4_data$weight)
-m4.4_res <- sampling(m4.3, data = m4.4_data)
+m4.4_res <- sampling(m4.4, data = m4.4_data)
+```
+```{r}
 m4.4_res
 ```
 
 
-In `m4.5` the 
 
-```{r}
+## 4.5 Polynomial Regression
 
+$$
+\begin{aligned}[t]
+h_i &\sim \dnorm(\mu_i, \sigma) \\
+\mu_i &= \alpha + \beta_1 x_i + \beta_2 x_i^2 \\
+a &\sim \dnorm(178, 100) \\
+b_1 &\sim \dnorm(0, 10) \\
+b_2 &\sim \dnorm(0, 10) \\
+\sigma &\sim \dnorm(0, 25)
+\end{aligned}
+$$
+
+```{r results='hide'}
+data("Howell1", package = "rethinking")
+d <- Howell1 %>%
+  mutate(weight.s = (weight - mean(weight)) / sd(weight),
+         weight.s2 = weight.s ^ 2)
+m4.5_data <- list(
+  n = nrow(d),
+  height = d$height,
+  weight_s = d$weight.s,
+  weight_s2 = d$weight.s2,
+  a_mean = 0,
+  a_scale = 100,
+  b_mean = rep(0, 2),
+  b_scale = rep(10, 2),
+  sigma_scale = 25
+)
+m4.5 <- stan_model(file.path("stan", "m4.5.stan"))
+m4.5_res <- sampling(m4.5, data = m4.5_data)
 ```
+```{r}
+m4.5_res
+```
+
+Now add a cubed term:
+$$
+\begin{aligned}[t]
+\mu_i &= \alpha + \beta_1 x_i + \beta_2 x_i^2 + \beta_3 x_i^3 \\
+b_3 &\sim \dnorm(0, 10) \\
+\end{aligned}
+$$
+```{r results='hide'}
+d <- mutate(d, weight.s3 = weight.s ^ 3)
+m4.6_data <- m4.5_data
+m4.6_data <- within(m4.6_data, {
+  weight_s3 <- d$weight.s3
+  b_mean <- rep(0, 3)
+  b_scale <- rep(10, 3)
+})
+m4.6 <- stan_model(file.path("stan", "m4.6.stan"))
+m4.6_res <- sampling(m4.6, data = m4.6_data)
+```
+```{r}
+m4.6_res
+```
+
 
